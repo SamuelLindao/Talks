@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:talks/classstructures.dart';
 import 'package:talks/home.dart';
 import 'package:talks/main.dart';
@@ -29,7 +30,7 @@ void FirstUse(BuildContext context) {
                   Text("Nice to meet, Welcome to Talks, let's start"),
                   ElevatedButton(
                       onPressed: () =>
-                      {Navigator.pop(context), NextValue(context)},
+                          {Navigator.pop(context), NextValue(context)},
                       child: Text("Next"))
                 ],
               )),
@@ -80,8 +81,9 @@ Future<void> NextValue(BuildContext context) async {
                     await docUsers.set(updatedJson, SetOptions(merge: true));
                     currentUser.name = controller.text;
                     controller.text = '';
+                    firstUse = false;
+                    Navigator.pop(context);
 
-                    Navigator.pop(context); // Fecha o diálogo
                   }
                 },
                 child: Text("Set"),
@@ -96,11 +98,14 @@ Future<void> NextValue(BuildContext context) async {
 
 class ServerCreateState extends State<ServerCreate> {
   @override
-  void initState() {
+  void initState(){
+
     super.initState();
+
     print("AAAAAAAAAA");
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (firstUse) {
+
         FirstUse(context);
       }
     });
@@ -108,8 +113,9 @@ class ServerCreateState extends State<ServerCreate> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Stack(
+    return Scaffold(
+      backgroundColor: Colors.black12,
+      body: Stack(
         children: [
           Center(
             child: SizedBox(
@@ -124,6 +130,60 @@ class ServerCreateState extends State<ServerCreate> {
               ),
             ),
           ),
+          Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                alignment: Alignment.center,
+                width: 300,
+                height: 100,
+                color: Colors.grey,
+                child: Row(
+                  children: [
+                    Container(
+                        child: IconButton(
+                      icon: Icon(Icons.person, size: 70, color: Colors.white),
+                      onPressed: () {
+                        setState(() {});
+                      },
+                    )),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          textAlign:TextAlign.start,
+                          currentUser.name,
+                          style: TextStyle( fontSize: 16, color: Colors.white),
+                        ),
+                        Row(
+                          children: [
+                            Text("Copy Id",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                            ),
+                            IconButton(
+                                icon: Icon(Icons.content_copy,
+                                    size: 15, color: Colors.white),
+                                onPressed: () => {
+                                      Clipboard.setData(
+                                          ClipboardData(text: currentUser.id)),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text("ID copied!"),
+                                          duration: Duration(
+                                              seconds:
+                                                  2), // Duração do SnackBar
+                                        ),
+                                      )
+                                    }),
+                          ],
+                        )
+                      ],
+                    )
+                  ],
+                ),
+              )),
           Positioned(
             bottom: 10,
             left: 10,
@@ -158,66 +218,63 @@ class ServerOptionState extends State<ServerOption> {
     return Container(
         child: widget.index < myServers.length
             ? FloatingActionButton(
-            onPressed: () async =>
-            {
-              currentServer = myServers[widget.index],
-              serverChannels = await getChannels(),
-              setState(() {
-                GetServerUsers();
-                print(serverUsers);
-              }),
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => HomePage()),
-                    (Route<dynamic> route) => false,
-              ),
-            },
-            child: Icon(Icons.search))
-            : FloatingActionButton(
-            onPressed: () =>
-            {
-              showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      backgroundColor: Colors.transparent,
-                      child: Container(
-                        width: 400,
-                        height: 500,
-                        decoration: BoxDecoration(
-                          color: Colors.indigo,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Column(
-                          children: [
-                            //Placeholder
-                            TextField(
-                              decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white),
-                              controller: controller,
-                            ),
-                            ElevatedButton(
-                                onPressed: () async =>
-                                {
-                                  await createServerFirestore(
-                                      controller.text),
-                                  Navigator.pushAndRemoveUntil(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            HomePage()),
-                                        (Route<dynamic> route) => false,
-                                  )
-                                },
-                                child: Text("Create New Server"))
-                          ],
-                        ),
+                onPressed: () async => {
+                      currentServer = myServers[widget.index],
+                      serverChannels = await getChannels(),
+                      setState(() {
+                        GetServerUsers();
+                        print(serverUsers);
+                      }),
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => HomePage()),
+                        (Route<dynamic> route) => false,
                       ),
-                    );
-                  })
-            },
-            child: Icon(Icons.add)));
+                    },
+                child: Icon(Icons.search))
+            : FloatingActionButton(
+                onPressed: () => {
+                      showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return Dialog(
+                              backgroundColor: Colors.transparent,
+                              child: Container(
+                                width: 400,
+                                height: 500,
+                                decoration: BoxDecoration(
+                                  color: Colors.indigo,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: Column(
+                                  children: [
+                                    //Placeholder
+                                    TextField(
+                                      decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.white),
+                                      controller: controller,
+                                    ),
+                                    ElevatedButton(
+                                        onPressed: () async => {
+                                              await createServerFirestore(
+                                                  controller.text),
+                                              Navigator.pushAndRemoveUntil(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        HomePage()),
+                                                (Route<dynamic> route) => false,
+                                              )
+                                            },
+                                        child: Text("Create New Server"))
+                                  ],
+                                ),
+                              ),
+                            );
+                          })
+                    },
+                child: Icon(Icons.add)));
   }
 }
 
@@ -298,7 +355,7 @@ Future<List<String>> getChannels() async {
     }
 
     List<String> serverChannelsT =
-    querySnapshot.docs.map((doc) => doc.id).toList();
+        querySnapshot.docs.map((doc) => doc.id).toList();
 
     print("Valores_" + currentServer + "_" + serverChannelsT.length.toString());
     serverChannels = serverChannelsT;
@@ -346,7 +403,7 @@ Future<void> GetServerUsers() async {
 Future<int> UserAddServer(String UserId) async {
   try {
     DocumentReference docUsers =
-    FirebaseFirestore.instance.collection('users').doc(UserId);
+        FirebaseFirestore.instance.collection('users').doc(UserId);
 
     UserInfoClass? info = await getUser(UserId);
     if (info == null) return 2;

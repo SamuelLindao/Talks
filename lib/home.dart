@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:talks/servercontroll.dart';
 import 'classstructures.dart';
 import 'components.dart';
@@ -18,7 +19,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePage extends State<HomePage> with TickerProviderStateMixin {
-  late TabController _controller;
+  late TabController? _controller;
   late ScrollController _scrollController;
 
   Future<void> createChannel(String channelName) async {
@@ -45,12 +46,20 @@ class _HomePage extends State<HomePage> with TickerProviderStateMixin {
 
   bool _showTasks = true;
   TextEditingController newChatController = TextEditingController();
+  TextEditingController newTaskController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   MessageClass msg = MessageClass();
 
   String _userName = currentUser.name; // Placeholder
   String _role = currentUser.role; // Placeholder
-  UserInfoClass? info = UserInfoClass(name: "name", role: "role", accountDate: "accountDate", tasks: [], servers: [], privateChats: [], id: "id");
+  UserInfoClass? info = UserInfoClass(
+      name: "name",
+      role: "role",
+      accountDate: "accountDate",
+      tasks: [],
+      servers: [],
+      privateChats: [],
+      id: "id");
   DocumentReference userRef = FirebaseFirestore.instance
       .collection('users')
       .doc(userCredential!.user!.uid);
@@ -69,78 +78,46 @@ class _HomePage extends State<HomePage> with TickerProviderStateMixin {
       scrollToEnd();
     });
   }
-void createPrivateChat(int index) async
-{
-  for(int i =0 ; i < serverUsers[index].privateChats.length;i++) {
-    if(!serverUsers[index]
-        .privateChats[i]
-        .contains(currentUser.id) ) {
-      info = await getUser(
-          serverUsers[index]
-              .id);
-      info!.privateChats.add(
-          currentUser.id + "_" +
-              serverUsers[index]
-                  .id);
-      userRef =
-          FirebaseFirestore
-              .instance
-              .collection(
-              'users')
-              .doc(
-              serverUsers[index]
-                  .id);
-      Map<String,
-          dynamic> updatedJson = info!
-          .toJson();
-      await userRef.set(
-          updatedJson,
-          SetOptions(
-              merge: true));
 
-      info = await getUser(
-          currentUser
-              .id);
-      info!.privateChats.add(
-          currentUser.id + "_" +
-              serverUsers[index]
-                  .id);
-      userRef =
-          FirebaseFirestore
-              .instance
-              .collection(
-              'users')
-              .doc(
-              currentUser
-                  .id);
-      Map<String,
-          dynamic> updatedJsonA = info!
-          .toJson();
-      await userRef.set(
-          updatedJsonA,
-          SetOptions(
-              merge: true));
-      currentUser =info!;
-
-      currentChannel = currentServer = currentUser.id + "_" +
-          serverUsers[index]
-              .id;
-
-      print("i dont know the result");
-    }
-    else
-    {
-      print("i know the result");
-      currentChannel= currentServer = serverUsers[index].privateChats.firstWhere((chat) => chat.contains(currentUser.id));
-    }
+  void createPrivateChat(int index) async {
+    // for (int i = 0; i < serverUsers[index].privateChats.length; i++) {
+    //   if (!serverUsers[index].privateChats[i].contains(currentUser.id)) {
+    //     info = await getUser(serverUsers[index].id);
+    //     info!.privateChats.add(currentUser.id + "_" + serverUsers[index].id);
+    //     userRef = FirebaseFirestore.instance
+    //         .collection('users')
+    //         .doc(serverUsers[index].id);
+    //     Map<String, dynamic> updatedJson = info!.toJson();
+    //     await userRef.set(updatedJson, SetOptions(merge: true));
+    //
+    //     info = await getUser(currentUser.id);
+    //     info!.privateChats.add(currentUser.id + "_" + serverUsers[index].id);
+    //     userRef =
+    //         FirebaseFirestore.instance.collection('users').doc(currentUser.id);
+    //     Map<String, dynamic> updatedJsonA = info!.toJson();
+    //     await userRef.set(updatedJsonA, SetOptions(merge: true));
+    //     currentUser = info!;
+    //
+    //     currentChannel =
+    //         currentServer = currentUser.id + "_" + serverUsers[index].id;
+    //
+    //     print("i dont know the result");
+    //   } else {
+    //     print("i know the result");
+    //     currentChannel = currentServer = serverUsers[index]
+    //         .privateChats
+    //         .firstWhere((chat) => chat.contains(currentUser.id));
+    //   }
+    // }
   }
 
-}
   @override
   void dispose() {
-    _controller.dispose();
+    _controller!.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
+    newChatController.dispose();
+
     super.dispose();
   }
 
@@ -182,8 +159,8 @@ void createPrivateChat(int index) async
 
                         if (newServerChannels != serverChannels) {
                           serverChannels = newServerChannels;
-                          _controller = TabController(
-                              length: serverChannels.length, vsync: this);
+                            _controller = TabController(
+                                length: serverChannels.length, vsync: this);
                         }
                         ;
                       }
@@ -199,7 +176,7 @@ void createPrivateChat(int index) async
                                     currentChannel = serverChannels[index];
                                     print(serverChannels[index]);
                                     setState(() {
-                                      _controller.animateTo(index);
+                                      _controller!.animateTo(index);
                                     });
                                     scrollToEnd();
                                   },
@@ -209,7 +186,7 @@ void createPrivateChat(int index) async
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor:
                                         CupertinoColors.inactiveGray,
-                                    shape:const RoundedRectangleBorder(
+                                    shape: const RoundedRectangleBorder(
                                         borderRadius: BorderRadius.zero),
                                   ),
                                   onPressed: () {
@@ -231,7 +208,8 @@ void createPrivateChat(int index) async
                                                 const SizedBox(height: 16),
                                                 TextField(
                                                   controller: newChatController,
-                                                  decoration: const InputDecoration(
+                                                  decoration:
+                                                      const InputDecoration(
                                                     filled: true,
                                                     fillColor: Colors.white,
                                                   ),
@@ -279,7 +257,15 @@ void createPrivateChat(int index) async
                         IconButton(
                           iconSize: 50,
                           onPressed: () {
-                            // Abre um diálogo com informações do usuário
+                            Clipboard.setData(
+                                ClipboardData(text: currentUser.id));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("ID copied!"),
+                                duration:
+                                    Duration(seconds: 2), // Duração do SnackBar
+                              ),
+                            );
                           },
                           icon: const Icon(Icons.import_contacts),
                         ),
@@ -338,6 +324,28 @@ void createPrivateChat(int index) async
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             ElevatedButton(
+                              onPressed: () async {
+                                currentUser =
+                                    await getUser(userCredential!.user!.uid) ??
+                                        UserInfoClass(
+                                            name: "name",
+                                            role: "role",
+                                            accountDate: "accountDate",
+                                            tasks: [],
+                                            servers: [],
+                                            privateChats: [],
+                                            id: "id");
+                                myServers = currentUser.servers;
+
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ServerCreate()),
+                                );
+                              },
+                              child: Icon(Icons.exit_to_app),
+                            ),
+                            ElevatedButton(
                               onPressed: () {
                                 setState(() {
                                   _showTasks = !_showTasks;
@@ -352,8 +360,8 @@ void createPrivateChat(int index) async
                             ),
                             ElevatedButton(
                               onPressed: () {
-                               currentChannel = currentServer =
-                                    currentUser.privateChats[0];
+                                currentChannel =
+                                    currentServer = currentUser.privateChats[0];
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -441,7 +449,7 @@ void createPrivateChat(int index) async
                         });
 
                         return TabBarView(
-                          controller: _controller,
+                          controller: _controller ?? null,
                           children: List.generate(
                             serverChannels.length,
                             (index) {
@@ -494,15 +502,16 @@ void createPrivateChat(int index) async
                       .doc("users")
                       .collection("serverUsers")
                       .snapshots(),
-                  builder: (context, snapshot)  {
+                  builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       Future.wait(snapshot.data!.docs.map((doc) async {
                         return await getUser(doc.id);
                       })).then((newUsers) {
-                        List<UserInfoClass> updatedUsers = newUsers.whereType<UserInfoClass>().toList();
+                        List<UserInfoClass> updatedUsers =
+                            newUsers.whereType<UserInfoClass>().toList();
 
                         if (!listEquals(serverUsers, updatedUsers)) {
-                            serverUsers = updatedUsers;
+                          serverUsers = updatedUsers;
                         }
                       });
                     }
@@ -513,10 +522,10 @@ void createPrivateChat(int index) async
                       itemBuilder: (context, index) {
                         return UserProfilePreview(
                           onTap: () {
-                            if (serverUsers[index].id != currentUser.id)
+                            if (serverUsers[index].id != currentUser.id) {
                               showDialog(
                                 context: context,
-                                builder: (BuildContext context) {
+                                builder: (BuildContext contextA) {
                                   return Dialog(
                                     backgroundColor: Colors.transparent,
                                     child: Container(
@@ -542,18 +551,47 @@ void createPrivateChat(int index) async
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              ElevatedButton(
-                                                onPressed: () {},
+                                              if (currentUser.role == 'admin')
+                                                ElevatedButton(
+
+                                                onPressed: () {
+                                                  showDialog(
+                                                    context: contextA,
+                                                    builder: (BuildContext contextB)
+                                                      {
+                                                        return Dialog(
+                                                          backgroundColor:  Colors.transparent,
+                                                          child: Container(
+                                                            width: 325,
+                                                            height: 250,
+                                                            padding: const EdgeInsets.all(20),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.white,
+                                                              borderRadius: BorderRadius.circular(15)
+                                                            ),
+                                                            child: Column(
+                                                             children: [
+                                                               Text("Task Name"),
+                                                               TextField(
+                                                                 controller: newTaskController,
+                                                               )
+                                                             ],
+                                                            ),
+                                                          ),
+                                                        );
+
+                                                      }
+                                                  );
+                                                },
                                                 child: const Row(
                                                   children: [
                                                     Icon(Icons.add),
-                                                    Text("Invite User")
+                                                    Text("Add Task")
                                                   ],
                                                 ),
                                               ),
                                               ElevatedButton(
                                                 onPressed: () {
-
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
@@ -593,7 +631,7 @@ void createPrivateChat(int index) async
                                   );
                                 },
                               );
-                            else {
+                            } else {
                               showDialog(
                                 context: context,
                                 builder: (BuildContext context) {

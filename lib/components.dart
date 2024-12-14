@@ -227,6 +227,8 @@ class InputChatArea extends StatefulWidget {
 }
 
 class InputChatState extends State<InputChatArea> {
+
+
   Widget build(BuildContext context) {
     return Row(children: [
       Expanded(
@@ -567,6 +569,11 @@ class _ShowAddUserDialogState extends State<ShowAddUserDialog> {
           textToShow = 'Unknown Error';
       }
     });
+  }
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override

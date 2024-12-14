@@ -14,7 +14,6 @@ class MessagesPage extends StatefulWidget {
 class MessagesPageState extends State<MessagesPage>
     with SingleTickerProviderStateMixin {
   late TabController _controller;
-  TextEditingController _input = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   MessageClass msg = MessageClass();
   @override

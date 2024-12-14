@@ -1,16 +1,13 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:talks/MsgCase.dart';
-import 'package:talks/servercontroll.dart';
-import 'package:talks/home.dart';
 import 'classstructures.dart';
-import 'messagesprivate.dart';
-import 'apiservice.dart';
-import 'test.dart';
-import 'auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
+import 'initial.dart';
+import 'package:tray_manager/tray_manager.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 UserCredential? userCredential;
 
@@ -39,11 +36,14 @@ List<String> serverChannels = [
 ];
 List<UserInfoClass> serverUsers = [];
 List<UserInfoClass> privateChats = [];
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(MyApp());
 }
 
@@ -51,8 +51,43 @@ class MyApp extends StatefulWidget {
   @override
   MyAppState createState() => MyAppState();
 }
+ConnectivityResult? connectivityResult;
+//Problema da ErrorPage() para resolver.
+class MyAppState extends State<MyApp> with TrayListener{
+  late StreamSubscription<List<ConnectivityResult>> subscription;
 
-class MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeTray();
+
+    subscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> resultList) {
+        connectivityResult = resultList.isNotEmpty ? resultList.first : ConnectivityResult.none;
+        print(connectivityResult);
+
+      });
+
+  }
+
+  Future<void> _initializeTray() async {
+    trayManager.addListener(this);
+    await trayManager.setIcon('assets/app_icon.png');
+    await trayManager.setToolTip('Meu App');
+    await trayManager.setContextMenu(Menu(items: [
+      MenuItem(key: 'show', label: 'Mostrar'),
+      MenuItem(key: 'exit', label: 'Sair'),
+    ]));
+  }
+
+
+  @override
+  void dispose() {
+    trayManager.removeListener(this);
+    subscription.cancel();
+    super.dispose();
+  }
+
+
   void updateChannel(String newChannel) {
     setState(() {});
   }
@@ -65,54 +100,20 @@ class MyAppState extends State<MyApp> {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: LoginPage());
+        home:   InitialScreen() ) ;
   }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  void onTrayIconMouseDown() {
+    appWindow.show();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
+  void onTrayMenuItemClick(MenuItem menuItem) {
+    if (menuItem.key == 'show') {
+      appWindow.show();
+    } else if (menuItem.key == 'exit') {
+      appWindow.close();
+    }
   }
 }
+

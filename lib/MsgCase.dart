@@ -36,13 +36,20 @@ class MsgCase {
     };
   }
   Future<void> saveToFirestore() async {
-    CollectionReference messages = FirebaseFirestore.instance
-        .collection('servers').doc('servers')
-        .collection(currentServer)
-        .doc("channels").collection("channels")
-        .doc(currentChannel)
-        .collection('messages');
-    DocumentReference docRef = await messages.add(this.toJson());
-    await docRef.update({'id': docRef.id});
+    try {
+      CollectionReference messages = FirebaseFirestore.instance
+          .collection('servers').doc('servers')
+          .collection(currentServer)
+          .doc("channels").collection("channels")
+          .doc(currentChannel)
+          .collection('messages');
+      DocumentReference docRef = await messages.add(this.toJson());
+      await docRef.update({'id': docRef.id});
+      print("Funcionou");
+    }
+    on FirebaseException  catch(e)
+    {
+      print(e.message);
+    }
     }
 }

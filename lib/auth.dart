@@ -1,12 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:talks/components.dart';
 import 'package:talks/servercontroll.dart';
 import 'package:talks/home.dart';
 import 'classstructures.dart';
 import 'main.dart';
 
+
+String result = '';
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -15,7 +21,13 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   TextEditingController email = TextEditingController();
   TextEditingController password = TextEditingController();
-  bool _showError = false;
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +41,11 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (_showError)
-                const SizedBox(
+                 SizedBox(
                   height: 25,
                   width: 350,
                   child: Text(
-                    'Invalid Login',
+                    result,
                     textAlign: TextAlign.start,
                     style: TextStyle(color: Colors.red),
                   ),
@@ -75,10 +86,9 @@ class _LoginPageState extends State<LoginPage> {
                 child: Center(
                     child: GestureDetector(
                   onTap: () {
-                    Navigator.pushAndRemoveUntil(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => RegisterPage()),
-                      (Route<dynamic> route) => false,
                     );
                     print('Texto clicado!');
                   },
@@ -96,8 +106,12 @@ class _LoginPageState extends State<LoginPage> {
                 height: 50,
                 width: 250,
                 child: ElevatedButton(
-                    onPressed: () {
-                      login(context, email.text, password.text);
+                    onPressed: () async{
+                      result = await login(context, email.text, password.text) ;
+                      setState(() {
+
+                      });
+
                     },
                     child: Text('Login')),
               )
@@ -122,10 +136,16 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  bool _showError = false;
   TextEditingController email = TextEditingController();
   TextEditingController password1 = TextEditingController();
   TextEditingController password2 = TextEditingController();
+  @override
+  void dispose() {
+    email.dispose();
+    password1.dispose();
+    password2.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,12 +159,11 @@ class _RegisterPageState extends State<RegisterPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (_showError)
-                const SizedBox(
+                 SizedBox(
                   height: 25,
                   width: 350,
                   child: Text(
-                    'Invalid Login',
+                    result,
                     textAlign: TextAlign.start,
                     style: TextStyle(color: Colors.red),
                   ),
@@ -204,10 +223,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Center(
                     child: GestureDetector(
                   onTap: () {
-                    Navigator.pushAndRemoveUntil(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => LoginPage()),
-                      (Route<dynamic> route) => false,
                     );
                     print('Texto clicado!');
                   },
@@ -226,17 +244,17 @@ class _RegisterPageState extends State<RegisterPage> {
                 height: 50,
                 width: 250,
                 child: ElevatedButton(
-                    onPressed: () {
-                      if (!widget.FrontEndValidation(
-                          password1.text, password2.text))
-                        setState(() {
-                          password1.text = "";
-                          password2.text = "";
-                          _showError = true;
-                        });
-                      else {
-                        register(context, email.text, password1.text);
-                      }
+                    onPressed: () async{
+
+
+                       if(password1.text == password2.text)
+                         result = await register(context, email.text, password1.text) as String;
+                       else
+                         result = "Passwords do not match";
+                       setState(() {
+
+                       });
+
                     },
                     child: Text('Register')),
               )
@@ -247,43 +265,98 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
+Future<void> writeLoginToken(String email, String password) async {
+  final documents = await getApplicationDocumentsDirectory();
+  String directory = '${documents.path}/talksTemp';
+  final dir = Directory(directory);
 
-Future<int> login(BuildContext context, String email, String password) async {
+  if (!await dir.exists()) {
+    await dir.create(recursive: true);
+    print('Diretório criado: $directory');
+  }
+
+  final file = File('$directory/tok.txt');
+
+  Map<String, String> credentials = {
+    'email': email,
+    'password': password
+  };
+
+  String content = json.encode(credentials);
+
+  await file.writeAsString(content, mode: FileMode.write);
+  print("Dados de login salvos com sucesso.");
+}
+
+Future<Map<String, String>> getLoginToken() async {
+  final documents = await getApplicationDocumentsDirectory();
+  String directory = '${documents.path}/talksTemp/tok.txt';
+  final file = File(directory);
+
+  if (await file.exists()) {
+    String content = await file.readAsString();
+
+    Map<String, String> credentials = Map<String, String>.from(json.decode(content));
+
+    return credentials;
+  } else {
+    return {};
+  }
+}
+
+
+Future<String> login(BuildContext context, String email, String password) async {
   try {
-    userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(email: email, password: password);
+      userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+    await writeLoginToken(email, password);
+
+
     UserInfoClass? user = await getUser(userCredential!.user!.uid.toString());
     currentUser = user!;
     myServers = currentUser.servers;
     print("Numero de Servers == "+ myServers.length.toString());
 
-    //Mexendo nisso daqui, que sono.
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => ServerCreate()),
-      (Route<dynamic> route) => false,
+    result = '';
+     Navigator.pushReplacement(
+       context,
+       MaterialPageRoute(builder: (context) => ServerCreate()),
+     );
+
+    return "Login Sucessfuly";
+  } on FirebaseAuthException catch (e) {
+    String errorMessage;
+
+    switch (e.code) {
+      case 'user-not-found':
+        errorMessage = "No user found for that email. Please check and try again.";
+        break;
+      case 'wrong-password':
+        errorMessage = "Incorrect password. Please try again.";
+        break;
+      case 'invalid-email':
+        errorMessage = "The email address is not valid.";
+        break;
+      default:
+        errorMessage = e.message ?? "An unknown error occurred.";
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage))
     );
 
-    return 0;
-  } on FirebaseAuthException catch (e) {
-    if (e.code == 'user-not-found') {
-      print('Nenhum usuário encontrado com esse email.');
-      return 1;
-    } else if (e.code == 'wrong-password') {
-      print('Senha incorreta.');
-      return 2;
-    } else {
-      print('Erro: ${e.message}');
-      return 3;
-    }
+    return errorMessage;
   }
 }
 
-Future<void> register(
+Future<String> register(
     BuildContext context, String email, String password) async {
   try {
     UserCredential _userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password);
+    await writeLoginToken(email, password);
+
     firstUse = true;
     print(firstUse);
     if (firstUse) {
@@ -302,13 +375,36 @@ Future<void> register(
         currentUser = userInf;
         await userRef.set(userInf.toJson(), SetOptions(merge: true));
       }
-      Navigator.pushAndRemoveUntil(
+      result = '';
+
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => ServerCreate()),
-        (Route<dynamic> route) => false,
       );
     }
+    return "User Registered";
   } on FirebaseAuthException catch (e) {
-    print("Erro: ${e.message}");
+    String errorMessage;
+
+    switch (e.code) {
+      case 'email-already-in-use':
+        errorMessage = "The email address is already in use by another account.";
+        break;
+      case 'weak-password':
+        errorMessage = "The password is too weak. Please choose a stronger password.";
+        break;
+      case 'invalid-email':
+        errorMessage = "The email address is not valid.";
+        break;
+      default:
+        errorMessage = e.message ?? "Unknown error occurred.";
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage))
+    );
+
+    return errorMessage;
   }
+
 }
